@@ -1,0 +1,16 @@
+
+if TARGET_GATEWAY_DK
+
+config SYS_BOARD
+	default "gateway_dk"
+
+config SYS_VENDOR
+	default "freescale"
+
+config SYS_SOC
+	default "fsl-layerscape"
+
+config SYS_CONFIG_NAME
+	default "gateway_dk"
+
+endif
