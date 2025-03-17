@@ -1,0 +1,6 @@
+Gateway Development Kit
+M:	Tomaz Zaman <tomaz@mono.si>
+S:	Maintained
+F:	board/freescale/gateway_dk/
+F:	include/configs/gateway_dk.h
+F:	configs/mono_gateway_dk_defconfig

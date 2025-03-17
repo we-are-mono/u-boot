@@ -1878,8 +1878,8 @@ config TARGET_LS1046ARDB
 	  development platform that supports the QorIQ LS1046A
 	  Layerscape Architecture processor.
 
-config TARGET_LS1046AFRWY
-	bool "Support ls1046afrwy"
+config TARGET_GATEWAY_DK
+	bool "Support gateway_dk"
 	select ARCH_LS1046A
 	select ARM64
 	select ARMV8_MULTIENTRY
@@ -1888,11 +1888,11 @@ config TARGET_LS1046AFRWY
 	select BOARD_LATE_INIT
 	select DM_SPI_FLASH if DM_SPI
 	select GPIO_EXTRA_HEADER
-	imply SCSI
+	select FSL_DDR_INTERACTIVE
 	help
-	  Support for Freescale LS1046AFRWY platform.
-	  The LS1046A Freeway Board (FRWY) is a high-performance
-	  development platform that supports the QorIQ LS1046A
+	  Support for Gateway Development Kit.
+	  Gateway Development Kit is a high-performance
+	  development platform that is based on the QorIQ LS1046A
 	  Layerscape Architecture processor.
 
 config ARCH_SC5XX
@@ -2416,7 +2416,7 @@ source "board/freescale/ls1021aiot/Kconfig"
 source "board/freescale/ls1046aqds/Kconfig"
 source "board/freescale/ls1043ardb/Kconfig"
 source "board/freescale/ls1046ardb/Kconfig"
-source "board/freescale/ls1046afrwy/Kconfig"
+source "board/freescale/gateway_dk/Kconfig"
 source "board/freescale/ls1012aqds/Kconfig"
 source "board/freescale/ls1012ardb/Kconfig"
 source "board/freescale/ls1012afrdm/Kconfig"
