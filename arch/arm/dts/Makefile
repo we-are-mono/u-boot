@@ -503,7 +503,6 @@ dtb-$(CONFIG_FSL_LSCH2) += fsl-ls1043a-qds-duart.dtb \
 	fsl-ls1046a-qds-duart.dtb \
 	fsl-ls1046a-qds-lpuart.dtb \
 	fsl-ls1046a-rdb.dtb \
-	fsl-ls1046a-frwy.dtb \
 	fsl-ls1012a-qds.dtb \
 	fsl-ls1012a-rdb.dtb \
 	fsl-ls1012a-2g5rdb.dtb \
@@ -516,6 +515,13 @@ dtb-$(CONFIG_TARGET_SL28) += fsl-ls1028a-kontron-sl28.dtb \
 	fsl-ls1028a-kontron-sl28-var4.dtb \
 
 dtb-$(CONFIG_TARGET_TEN64) += fsl-ls1088a-ten64.dtb
+
+dtb-$(CONFIG_TARGET_GATEWAY_DK) += mono-gateway-dk.dtb
+
+dtb-$(CONFIG_TARGET_DRAGONBOARD410C) += dragonboard410c.dtb
+dtb-$(CONFIG_TARGET_DRAGONBOARD820C) += dragonboard820c.dtb
+dtb-$(CONFIG_TARGET_STARQLTECHN) += starqltechn.dtb
+dtb-$(CONFIG_TARGET_QCS404EVB) += qcs404-evb.dtb
 
 dtb-$(CONFIG_TARGET_STEMMY) += ste-ux500-samsung-stemmy.dtb
 
