@@ -42,85 +42,29 @@
 	status = "okay";
 };
 
-&gpio0 {
-    status = "okay";
-};
-
-&gpio1 {
-    status = "okay";
-};
-
-&gpio2 {
-    status = "okay";
-};
-
-&gpio3 {
-    status = "okay";
-};
-
 &i2c0 {
 	status = "okay";
-
-	/* Thermal sensors, retimer, clock genenerator, PWM fan */
-	i2c-mux@70 {
-		compatible = "ti,pca9546";
-		reg = <0x70>;
-		#address-cells = <1>;
-		#size-cells = <0>;
-		reset-gpios = <&gpio2 25 GPIO_ACTIVE_LOW>;
-
-		interrupt-parent = <&gpio0>;
-		interrupts = <29 IRQ_TYPE_LEVEL_LOW>;
-		interrupt-controller;
-		#interrupt-cells = <2>;
-	};
 };
 
 &i2c1 {
 	status = "okay";
-
-	/* SFP+ modules */
-	sfpmux: i2c-mux@70 {
-		compatible = "ti,pca9546";
-		reg = <0x70>;
-		#address-cells = <1>;
-		#size-cells = <0>;
-		reset-gpios = <&gpio2 24 GPIO_ACTIVE_LOW>;
-
-		interrupt-parent = <&gpio0>;
-		interrupts = <30 IRQ_TYPE_LEVEL_LOW>;
-		interrupt-controller;
-		#interrupt-cells = <2>;
-    };
 };
 
 &i2c2 {
 	status = "okay";
-
-	/*  */
-	i2c-mux@70 {
-		compatible = "ti,pca9546";
-		reg = <0x70>;
-		#address-cells = <1>;
-		#size-cells = <0>;
-		reset-gpios = <&gpio2 23 GPIO_ACTIVE_LOW>;
-
-		interrupt-parent = <&gpio0>;
-		interrupts = <31 IRQ_TYPE_LEVEL_LOW>;
-		interrupt-controller;
-		#interrupt-cells = <2>;
-	};
 };
 
 &qspi {
 	status = "okay";
 
-	mt25qu512a0: flash@0 {
+	mt25qu512abb: flash@0 {
 		#address-cells = <1>;
 		#size-cells = <1>;
 		compatible = "jedec,spi-nor";
 		spi-max-frequency = <50000000>;
 		reg = <0>;
+		spi-tx-bus-width = <1>;
+        spi-rx-bus-width = <4>;
 	};
 
 };
@@ -179,17 +123,14 @@
 
 	mdio@fd000 {
 		sgmii_phy2: ethernet-phy@0 {
-			compatible = "ethernet-phy-ieee802.3-c45";
 			reg = <0x0>;
 		};
 
 		sgmii_phy0: ethernet-phy@1 {
-			compatible = "ethernet-phy-ieee802.3-c45";
 			reg = <0x1>;
 		};
 
 		sgmii_phy1: ethernet-phy@2 {
-			compatible = "ethernet-phy-ieee802.3-c45";
 			reg = <0x2>;
 		};
 	};
