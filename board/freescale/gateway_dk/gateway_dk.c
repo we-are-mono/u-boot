@@ -69,7 +69,6 @@ int led_init(void)
 	dm_i2c_write(led_controller, 0x42, &reg, 1); // green
 
 	return 0;
-
 }
 
 int board_early_init_f(void)
