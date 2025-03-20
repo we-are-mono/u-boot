@@ -121,6 +121,10 @@
 		status = "okay";
 	};
 
+	mdio@fc000 {
+		status = "disabled";
+	};
+
 	mdio@fd000 {
 		sgmii_phy2: ethernet-phy@0 {
 			reg = <0x0>;

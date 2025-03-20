@@ -28,8 +28,9 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-#define I2C_MUX_ADDR  0x70
-#define I2C_RGB_LED_ADDR  0x6c
+#define I2C_MUX_ADDR 		0x70
+#define I2C_RGB_LED_ADDR 	0x6c
+#define I2C_FAN_ADDR		0x2e
 
 int led_init(void)
 {
@@ -62,11 +63,38 @@ int led_init(void)
 	dm_i2c_write(led_controller, 0x31, &reg, 1); // red
 	dm_i2c_write(led_controller, 0x32, &reg, 1); // green
 
+
 	/* Turn green LED on, 20% brightness */
 	reg = 0x33;
 	dm_i2c_write(led_controller, 0x40, &off, 1); // blue
 	dm_i2c_write(led_controller, 0x41, &off, 1); // red
 	dm_i2c_write(led_controller, 0x42, &reg, 1); // green
+
+	return 0;
+}
+
+int fan_init(void)
+{
+	u8 reg;
+	uint8_t mux_data = 0x08; // Mux channel 3
+	struct udevice *fan_controller, *mux_dev;
+
+	/* Select i2c mux (IC2-CH2) and set the active channel to 3 */
+	i2c_get_chip_for_busnum(0, I2C_MUX_ADDR, 1, &mux_dev);
+	dm_i2c_write(mux_dev, 0x00, &mux_data, 1);
+
+	/* Select Fan controller */
+	i2c_get_chip_for_busnum(0, I2C_FAN_ADDR, 1, &fan_controller);
+
+	/* Invert polarity and set output type to push-pull */
+	reg = 0xff;
+	dm_i2c_write(fan_controller, 0x2a, &reg, 1);
+	dm_i2c_write(fan_controller, 0x2b, &reg, 1);
+
+	/* Set fans to fixed 35% speed, Linux will take care of proper speeds */
+	reg = 0x5A;
+	dm_i2c_write(fan_controller, 0x30, &reg, 1);
+	dm_i2c_write(fan_controller, 0x40, &reg, 1);
 
 	return 0;
 }
@@ -98,6 +126,7 @@ int misc_init_r(void)
 int fsl_board_late_init(void)
 {
 	led_init();
+	fan_init();
 	return 0;
 }
 
