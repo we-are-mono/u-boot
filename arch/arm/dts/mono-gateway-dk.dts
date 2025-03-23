@@ -32,6 +32,15 @@
 	};
 };
 
+&soc {
+	wdog0: watchdog@2ad0000 {
+		compatible = "fsl,imx21-wdt";
+		reg = <0x0 0x2ad0000 0x0 0x10000>;
+		big-endian;
+		status = "okay";
+	};
+};
+
 &duart0 {
 	bootph-all;
 	status = "okay";

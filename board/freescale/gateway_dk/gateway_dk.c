@@ -155,6 +155,7 @@ int fsl_board_late_init(void)
 
 int board_init(void)
 {
+
 #ifdef CONFIG_NXP_ESBC
 	/*
 	 * In case of Secure Boot, the IBR configures the SMMU
