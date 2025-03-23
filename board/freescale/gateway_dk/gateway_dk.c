@@ -23,15 +23,15 @@
 #include <fsl_csu.h>
 #include <fsl_esdhc.h>
 #include <fsl_dspi.h>
+#include <wdt.h>
+#include <watchdog.h>
+#include <dm.h>
 
 #include "../common/i2c_mux.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
-/*
- * The main RGB LED needs to pulse repeatedly until we get to Linux 
- * TODO: Enable watchdog to turn it red in case of a booting error
-*/
+/* The main RGB LED needs to pulse repeatedly until we get to Linux */
 int led_init(void)
 {
 	u8 led, reg;
@@ -197,3 +197,20 @@ int ft_board_setup(void *blob, struct bd_info *bd)
 	fdt_fixup_icid(blob);
 	return 0;
 }
+
+#ifdef CONFIG_WATCHDOG
+void board_prep_linux(struct bootm_headers *images)
+{
+	struct udevice *wdt;
+	int ret;
+
+	/* Locate the watchdog device */
+	ret = uclass_get_device(UCLASS_WDT, 0, &wdt);
+
+	/* Start watchdog with 10 seconds timeout */
+	ret = wdt_start(wdt, 10000, 0);
+	if (ret) {
+		printf("Failed to start watchdog.\n");		
+	}
+}
+#endif
