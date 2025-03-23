@@ -27,6 +27,14 @@
 #define I2C_MUX_CH_DEFAULT			0x1 /* Channel 0*/
 #define I2C_MUX_CH_RTC				0x1 /* Channel 0*/
 
+/* I2C RGB controller */
+#define I2C_RGB_MUX_CHAN			0x08
+#define I2C_RGB_LED_ADDR 			0x6c
+#define I2C_RGB_LED_CURR			0xff
+
+/* I2C fan controller */
+#define I2C_FAN_ADDR				0x2e
+
 /* RTC */
 #define CFG_SYS_I2C_RTC_ADDR		0x51  /* Channel 0 I2C bus 0*/
 #define CFG_SYS_RTC_BUS_NUM			0
