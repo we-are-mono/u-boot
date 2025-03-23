@@ -28,28 +28,39 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-#define I2C_MUX_ADDR 		0x70
-#define I2C_RGB_LED_ADDR 	0x6c
-#define I2C_FAN_ADDR		0x2e
-
+/*
+ * The main RGB LED needs to pulse repeatedly until we get to Linux 
+ * TODO: Enable watchdog to turn it red in case of a booting error
+*/
 int led_init(void)
 {
-	u8 reg, off = 0x00;
-	uint8_t mux_data = 0x08; // Mux channel 3
+	u8 led, reg;
+	int ret, i, j;
 	struct udevice *led_controller, *mux_dev;
 
+	uint8_t val;
+	uint8_t animation[] = { 0x00, 0x00, 0x00, 0x80, 0x00, 0x80, 0x00, 0x55, 0x55, 0x3 };
+	uint8_t animation_register_ranges[][2] = {
+		{ 0x80, 0x89 }, /* LED0, blue */
+		{ 0x9A, 0xA3 }, /* LED1, red */
+		{ 0xB4, 0xBD }, /* LED2, green */
+	};
+	
 	/* Select i2c mux (IC2-CH2) and set the active channel to 3 */
 	i2c_get_chip_for_busnum(2, I2C_MUX_ADDR, 1, &mux_dev);
-	dm_i2c_write(mux_dev, 0x00, &mux_data, 1);
+	uint8_t mux_chan = I2C_RGB_MUX_CHAN;
+	dm_i2c_write(mux_dev, 0x00, &mux_chan, 1);
 
 	/* Select LED controller */
 	i2c_get_chip_for_busnum(2, I2C_RGB_LED_ADDR, 1, &led_controller);
 
-	/* Enable the LED and set it to direct drive */
+	/* Enable the LED, set it to direct drive, enable animation */
 	reg = 0x01;
 	dm_i2c_write(led_controller, 0x0, &reg, 1);
 	reg = 0x00;
 	dm_i2c_write(led_controller, 0x002, &reg, 1);
+	reg = 0x0f;
+	dm_i2c_write(led_controller, 0x004, &reg, 1);
 	
 	reg = 0x55;
 	dm_i2c_write(led_controller, 0x010, &reg, 1); /* Confirm changes */
@@ -58,18 +69,29 @@ int led_init(void)
 	reg = 0x0f;
 	dm_i2c_write(led_controller, 0x020, &reg, 1);
 
-	/* Set peak current for all LEDs */
-	reg = 0x7f;
-	dm_i2c_write(led_controller, 0x30, &reg, 1); // blue
-	dm_i2c_write(led_controller, 0x31, &reg, 1); // red
-	dm_i2c_write(led_controller, 0x32, &reg, 1); // green
+	/* Set peak current for all LEDs in auto mode */
+	uint8_t led_current = I2C_RGB_LED_CURR;
+	for (led = 0x50; led <= 0x53; led++) {
+		ret = dm_i2c_write(led_controller, led, &led_current, 1);
+    }
 
+	/* Animation (white pulsing) */
+	for (i = 0; i < ARRAY_SIZE(animation_register_ranges); i++) {
+        uint8_t start = animation_register_ranges[i][0];
+        uint8_t end = animation_register_ranges[i][1];
+		uint8_t range_size = end - start + 1;
 
-	/* Turn green LED on, 20% brightness */
-	reg = 0x33;
-	dm_i2c_write(led_controller, 0x40, &off, 1); // blue
-	dm_i2c_write(led_controller, 0x41, &off, 1); // red
-	dm_i2c_write(led_controller, 0x42, &reg, 1); // green
+        for (j = 0; j < range_size; j++) {
+            val = animation[j];
+            ret = dm_i2c_write(led_controller, start + j, &val, 1);
+        }
+    }
+
+	reg = 0x55;
+	dm_i2c_write(led_controller, 0x010, &reg, 1); /* Confirm changes */
+
+	reg = 0xff;
+	dm_i2c_write(led_controller, 0x011, &reg, 1); /* Start animation */
 
 	return 0;
 }
