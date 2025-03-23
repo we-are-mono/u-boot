@@ -24,7 +24,7 @@
 		spi0 = &qspi;
 		serial0 = &duart0;
 		serial1 = &duart1;
-		mdio0 = &xmdio0;
+		mdio0 = &mdio;
 	};
 
 	chosen {
@@ -102,7 +102,6 @@
 		status = "okay";
 	};
 
-
 	ethernet@e2000 {
 		phy-handle = <&sgmii_phy2>;
 		phy-connection-type = "sgmii";
@@ -111,13 +110,13 @@
 
 	ethernet@f0000 { 
 		fixed-link = <0 1 1000 0 0>;
-		phy-connection-type = "usxgmii";
+		phy-connection-type = "xgmii";
 		status = "okay";
 	};
 
 	ethernet@f2000 {
 		fixed-link = <0 1 1000 0 0>;
-		phy-connection-type = "usxgmii";
+		phy-connection-type = "xgmii";
 		status = "okay";
 	};
 
@@ -125,16 +124,16 @@
 		status = "disabled";
 	};
 
-	mdio@fd000 {
-		sgmii_phy2: ethernet-phy@0 {
+	mdio: mdio@fd000 {
+		sgmii_phy0: ethernet-phy@0 {
 			reg = <0x0>;
 		};
 
-		sgmii_phy0: ethernet-phy@1 {
+		sgmii_phy1: ethernet-phy@1 {
 			reg = <0x1>;
 		};
 
-		sgmii_phy1: ethernet-phy@2 {
+		sgmii_phy2: ethernet-phy@2 {
 			reg = <0x2>;
 		};
 	};

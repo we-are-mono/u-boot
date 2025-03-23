@@ -50,6 +50,7 @@ int led_init(void)
 	dm_i2c_write(led_controller, 0x0, &reg, 1);
 	reg = 0x00;
 	dm_i2c_write(led_controller, 0x002, &reg, 1);
+	
 	reg = 0x55;
 	dm_i2c_write(led_controller, 0x010, &reg, 1); /* Confirm changes */
 
