@@ -62,13 +62,6 @@
 #define FDT_SEQ_MACADDR_FROM_ENV
 #endif
 
-
-/* EMC2305 */
-#define I2C_MUX_CH_EMC2305			0x08 /* select channel of the mux that fan ctrl is connected */
-#define I2C_EMC2305_ADDR			0x2E /* address of the fan port */
-#define I2C_EMC2305_CMD				0x30 /* speed register */
-#define I2C_EMC2305_PWM				0x80 /* 50% of fan speed */
-
 #include <asm/fsl_secure_boot.h>
 #include <asm/arch/soc.h>
 
