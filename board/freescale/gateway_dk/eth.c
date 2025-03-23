@@ -3,17 +3,48 @@
  * Copyright 2025 Mono Technologies Inc.
  */
 #include <common.h>
-#include <fdt_support.h>
-#include <net.h>
-#include <asm/io.h>
+#include <command.h>
 #include <netdev.h>
-#include <fm_eth.h>
-#include <fsl_dtsec.h>
-#include <fsl_mdio.h>
 #include <malloc.h>
+#include <fsl_mdio.h>
+#include <miiphy.h>
+#include <phy.h>
+#include <fm_eth.h>
+#include <asm/io.h>
+#include <exports.h>
+#include <asm/arch/fsl_serdes.h>
+#include <fsl-mc/fsl_mc.h>
 
-#include "../common/fman.h"
+/*
+ * Because there are no official u-boot drivers for the GPY115
+ * we have to do some basic stuff here since the generic driver
+ * doesn't do a good enough job
+*/
+int board_phy_config(struct phy_device *phydev)
+{
+	/* To make sure we don't touch any PHYs that might be in SFP+ */
+	if (phydev->phy_id == 0x67c9df10) {
+		/* First, reset the PHY and give it 10ms to boot up */
+		phy_write(phydev, MDIO_DEVAD_NONE, 0x0, 0x8000);
+		udelay(10000);
 
+		/* Invert LED polarity, we're driving them from PHYs, not VCC */
+		phy_write(phydev, MDIO_DEVAD_NONE, 0x1b, 0xf00);
+
+		/* LED 1 (green) should blink on TX/RX */
+		phy_write_mmd(phydev, MDIO_MMD_VEND1, 0x01, 0x0fe0);
+
+		/* LED 2 (amber) should be on when link is up */
+		phy_write_mmd(phydev, MDIO_MMD_VEND1, 0x02, 0x2040);
+	}
+
+	if (phydev->drv->config)
+		phydev->drv->config(phydev);
+
+	return 0;
+}
+
+/* Attach PHYs to the MDIO bus */
 int board_eth_init(struct bd_info *bis)
 {
 #ifdef CONFIG_FMAN_ENET
