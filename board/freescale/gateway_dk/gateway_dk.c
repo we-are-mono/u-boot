@@ -207,8 +207,8 @@ void board_prep_linux(struct bootm_headers *images)
 	/* Locate the watchdog device */
 	ret = uclass_get_device(UCLASS_WDT, 0, &wdt);
 
-	/* Start watchdog with 10 seconds timeout */
-	ret = wdt_start(wdt, 10000, 0);
+	/* Start watchdog with 15 seconds timeout */
+	ret = wdt_start(wdt, 15000, 0);
 	if (ret) {
 		printf("Failed to start watchdog.\n");		
 	}
