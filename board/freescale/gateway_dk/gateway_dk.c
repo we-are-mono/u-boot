@@ -137,7 +137,7 @@ int fan_init(void)
 	return 0;
 }
 
-#define DCFG_CCSR_PORSR1   0x20140000
+#define DCFG_CCSR_PORSR1   0x01EE0000
 #define RCW_SRC_MASK       0x1FF      /* bits 0–8 */
 #define SOME_ADDR          (0x01570000 + 0x1A8)
 
