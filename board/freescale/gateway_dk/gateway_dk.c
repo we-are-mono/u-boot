@@ -138,6 +138,7 @@ int fan_init(void)
 }
 
 #define DCFG_CCSR_PORSR1   0x01EE0000
+#define DCFG_WRITE_BACK    0x20140000
 #define RCW_SRC_MASK       0x1FF      /* bits 0–8 */
 #define SOME_ADDR          (0x01570000 + 0x1A8)
 
@@ -147,10 +148,11 @@ void workaround_a008127(void)
 
     dat = in_le32((void *)DCFG_CCSR_PORSR1);
     dat &= ~RCW_SRC_MASK;             /* Clear RCW_SRC bits */
-    out_le32((void *)DCFG_CCSR_PORSR1, dat);
+    out_le32((void *)DCFG_WRITE_BACK, dat);
 
     out_le32((void *)SOME_ADDR, 0xFFFFFFFF);
 }
+
 
 int board_early_init_f(void)
 {
