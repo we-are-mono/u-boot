@@ -50,16 +50,8 @@ static inline void usb_reset(void)
 int led_init(void)
 {
 	u8 led, reg;
-	int ret, i, j;
+	int ret;
 	struct udevice *led_controller, *mux_dev;
-
-	uint8_t val;
-	uint8_t animation[] = { 0x00, 0x00, 0x00, 0x80, 0x00, 0x80, 0x00, 0x55, 0x55, 0x3 };
-	uint8_t animation_register_ranges[][2] = {
-		{ 0x80, 0x89 }, /* LED0, blue */
-		{ 0x9A, 0xA3 }, /* LED1, red */
-		{ 0xB4, 0xBD }, /* LED2, green */
-	};
 	
 	/* Select i2c mux (IC2-CH2) and set the active channel to 3 */
 	i2c_get_chip_for_busnum(2, I2C_MUX_ADDR, 1, &mux_dev);
@@ -69,14 +61,11 @@ int led_init(void)
 	/* Select LED controller */
 	i2c_get_chip_for_busnum(2, I2C_RGB_LED_ADDR, 1, &led_controller);
 
-	/* Enable the LED, set it to direct drive, enable animation */
+	/* Enable the controller, set it to direct drive */
 	reg = 0x01;
 	dm_i2c_write(led_controller, 0x0, &reg, 1);
 	reg = 0x00;
 	dm_i2c_write(led_controller, 0x002, &reg, 1);
-	reg = 0x0f;
-	dm_i2c_write(led_controller, 0x004, &reg, 1);
-	
 	reg = 0x55;
 	dm_i2c_write(led_controller, 0x010, &reg, 1); /* Confirm changes */
 
@@ -84,29 +73,14 @@ int led_init(void)
 	reg = 0x0f;
 	dm_i2c_write(led_controller, 0x020, &reg, 1);
 
-	/* Set peak current for all LEDs in auto mode */
+	/* Set peak current for all LEDs */
 	uint8_t led_current = I2C_RGB_LED_CURR;
-	for (led = 0x50; led <= 0x53; led++) {
+	for (led = 0x30; led <= 0x33; led++) {
 		ret = dm_i2c_write(led_controller, led, &led_current, 1);
     }
 
-	/* Animation (white pulsing) */
-	for (i = 0; i < ARRAY_SIZE(animation_register_ranges); i++) {
-        uint8_t start = animation_register_ranges[i][0];
-        uint8_t end = animation_register_ranges[i][1];
-		uint8_t range_size = end - start + 1;
-
-        for (j = 0; j < range_size; j++) {
-            val = animation[j];
-            ret = dm_i2c_write(led_controller, start + j, &val, 1);
-        }
-    }
-
-	reg = 0x55;
-	dm_i2c_write(led_controller, 0x010, &reg, 1); /* Confirm changes */
-
-	reg = 0xff;
-	dm_i2c_write(led_controller, 0x011, &reg, 1); /* Start animation */
+	reg = 0x0F;
+	dm_i2c_write(led_controller, 0x040, &reg, 1); /* Turn on white LED */
 
 	return 0;
 }
