@@ -31,6 +31,17 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+int test_voltage_sensors(void);
+int test_stusb4500_nvm(void);
+int test_hd3ss3220(void);
+int test_pcf2131_rtc(void);
+int test_eeprom(void);
+int test_ds100df410_retimer(void);
+int test_6v49205b_clkgen(void);
+int test_emc2302_fan(void);
+int test_tmp431_temperatures(void);
+int test_lp5810a_led(int any_test_failed);
+
 /* 
  * USB ports have this weird reset thing going on
  * so the port doesn't come out of reset with the
@@ -44,71 +55,6 @@ static inline void usb_reset(void)
 	
 	out_le32(&scfg->usb_refclk_selcr1, reset_val);
 #endif
-}
-
-/* The main RGB LED needs to pulse repeatedly until we get to Linux */
-int led_init(void)
-{
-	u8 led, reg;
-	int ret;
-	struct udevice *led_controller, *mux_dev;
-	
-	/* Select i2c mux (IC2-CH2) and set the active channel to 3 */
-	i2c_get_chip_for_busnum(2, I2C_MUX_ADDR, 1, &mux_dev);
-	uint8_t mux_chan = I2C_RGB_MUX_CHAN;
-	dm_i2c_write(mux_dev, 0x00, &mux_chan, 1);
-
-	/* Select LED controller */
-	i2c_get_chip_for_busnum(2, I2C_RGB_LED_ADDR, 1, &led_controller);
-
-	/* Enable the controller, set it to direct drive */
-	reg = 0x01;
-	dm_i2c_write(led_controller, 0x0, &reg, 1);
-	reg = 0x00;
-	dm_i2c_write(led_controller, 0x002, &reg, 1);
-	reg = 0x55;
-	dm_i2c_write(led_controller, 0x010, &reg, 1); /* Confirm changes */
-
-	/* Enable all LEDs */
-	reg = 0x0f;
-	dm_i2c_write(led_controller, 0x020, &reg, 1);
-
-	/* Set peak current for all LEDs */
-	uint8_t led_current = I2C_RGB_LED_CURR;
-	for (led = 0x30; led <= 0x33; led++) {
-		ret = dm_i2c_write(led_controller, led, &led_current, 1);
-    }
-
-	reg = 0x0F;
-	dm_i2c_write(led_controller, 0x040, &reg, 1); /* Turn on white LED */
-
-	return 0;
-}
-
-int fan_init(void)
-{
-	u8 reg;
-	uint8_t mux_data = 0x08; // Mux channel 3
-	struct udevice *fan_controller, *mux_dev;
-
-	/* Select i2c mux (IC2-CH2) and set the active channel to 3 */
-	i2c_get_chip_for_busnum(0, I2C_MUX_ADDR, 1, &mux_dev);
-	dm_i2c_write(mux_dev, 0x00, &mux_data, 1);
-
-	/* Select Fan controller */
-	i2c_get_chip_for_busnum(0, I2C_FAN_ADDR, 1, &fan_controller);
-
-	/* Invert polarity and set output type to push-pull */
-	reg = 0xff;
-	dm_i2c_write(fan_controller, 0x2a, &reg, 1);
-	dm_i2c_write(fan_controller, 0x2b, &reg, 1);
-
-	/* Set fans to fixed 35% speed, Linux will take care of proper speeds */
-	reg = 0x5A;
-	dm_i2c_write(fan_controller, 0x30, &reg, 1);
-	dm_i2c_write(fan_controller, 0x40, &reg, 1);
-
-	return 0;
 }
 
 int board_early_init_f(void)
@@ -131,14 +77,31 @@ int board_setup_core_volt(u32 vdd)
 #ifdef CONFIG_MISC_INIT_R
 int misc_init_r(void)
 {
+	int test_failed = 0;
+	
+	printf("\n=== On-board devices self test ===\n\n");
+
+	test_failed |= test_voltage_sensors();
+	test_failed |= test_stusb4500_nvm();
+	test_failed |= test_hd3ss3220();
+	test_failed |= test_pcf2131_rtc();
+	test_failed |= test_eeprom();
+	test_failed |= test_ds100df410_retimer();
+	test_failed |= test_6v49205b_clkgen();
+	test_failed |= test_emc2302_fan();
+	test_failed |= test_tmp431_temperatures();
+	
+	// LED test runs last and turns red in case any of the tests fail
+	test_lp5810a_led(test_failed);
+	
+	printf("\n\n");
+
 	return 0;
 }
 #endif
 
 int fsl_board_late_init(void)
 {
-	led_init();
-	fan_init();
 	usb_reset();
 
 	return 0;

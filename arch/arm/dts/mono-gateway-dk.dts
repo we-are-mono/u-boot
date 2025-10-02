@@ -63,6 +63,10 @@
 	status = "okay";
 };
 
+&i2c3 {
+	status = "okay";
+};
+
 &usb1 {
 	status = "disabled";
 };
