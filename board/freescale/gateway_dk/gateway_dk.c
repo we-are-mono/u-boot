@@ -57,8 +57,31 @@ static inline void usb_reset(void)
 #endif
 }
 
+
+// As described in the errata document. 
+// Some addresses have no description to what they are. 
+#define DCFG_CCSR_PORSR1   0x01EE0000
+#define DCFG_WRITE_BACK    0x20140000
+#define RCW_SRC_MASK       0x1FF      /* bits 0–8 */
+#define SOME_ADDR          (0x01570000 + 0x1A8)
+
+void workaround_a008127(void)
+{
+    u32 dat;
+
+    dat = in_le32((void *)DCFG_CCSR_PORSR1);
+    dat &= ~RCW_SRC_MASK;             /* Clear RCW_SRC bits */
+    out_le32((void *)DCFG_WRITE_BACK, dat);
+
+    out_le32((void *)SOME_ADDR, 0xFFFFFFFF);
+}
+
 int board_early_init_f(void)
 {
+	// Errata fix 008127
+	// Needed for SFP functionality when booting from EMMC.
+	workaround_a008127();
+
 	fsl_lsch2_early_init_f();
 
 	return 0;
