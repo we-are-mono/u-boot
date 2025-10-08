@@ -31,11 +31,11 @@ int board_phy_config(struct phy_device *phydev)
 		/* Invert LED polarity, we're driving them from PHYs, not VCC */
 		phy_write(phydev, MDIO_DEVAD_NONE, 0x1b, 0xf00);
 
-		/* LED 1 (green) should blink on TX/RX */
-		phy_write_mmd(phydev, MDIO_MMD_VEND1, 0x01, 0x0fe0);
+		/* LED 1 (green) should be on when link is up */
+		phy_write_mmd(phydev, MDIO_MMD_VEND1, 0x01, 0x2040);
 
-		/* LED 2 (amber) should be on when link is up */
-		phy_write_mmd(phydev, MDIO_MMD_VEND1, 0x02, 0x2040);
+		/* LED 2 (amber) should blink on TX/RX */ 
+		phy_write_mmd(phydev, MDIO_MMD_VEND1, 0x02, 0x0fe0);
 	}
 
 	if (phydev->drv->config)
