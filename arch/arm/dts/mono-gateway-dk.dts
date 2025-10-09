@@ -4,11 +4,6 @@
  *
  * Copyright 2025 Mono Technologies Inc.
  *
- * GPIOs 384-415, /soc/gpio@2330000: GPIO4[0-31] &gpio3
- * GPIOs 416-447, /soc/gpio@2320000: GPIO3[0-31] &gpio2
- * GPIOs 448-479, /soc/gpio@2310000: GPIO2[0-31] &gpio1
- * GPIOs 480-511, /soc/gpio@2300000: GPIO1[0-31] &gpio0
- *
  */
 
 #include <dt-bindings/leds/common.h>
@@ -25,7 +20,11 @@
 		serial0 = &duart0;
 		serial1 = &duart1;
 		mdio0 = &mdio;
-	};
+        i2c0 = &i2c0;
+        i2c1 = &i2c1;
+        i2c2 = &i2c2;
+        i2c3 = &i2c3;  /* Force i2c@21b0000 to always be bus 3 */
+    };
 
 	chosen {
 		stdout-path = "serial0:115200n8";
@@ -51,7 +50,25 @@
 };
 
 &i2c2 {
-	status = "okay";
+    status = "okay";
+    
+    i2c_mux: i2c-mux@70 {
+        compatible = "nxp,pca9546";
+        #address-cells = <1>;
+        #size-cells = <0>;
+        reg = <0x70>;
+        
+        i2c@2 {  /* Channel 2 */
+            #address-cells = <1>;
+            #size-cells = <0>;
+            reg = <2>;
+            
+            pcf2131: rtc@53 {
+                compatible = "nxp,pcf2131";
+                reg = <0x53>;
+            };
+        };
+    };
 };
 
 &i2c3 {
