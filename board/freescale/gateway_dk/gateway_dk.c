@@ -57,12 +57,10 @@ static inline void usb_reset(void)
 #endif
 }
 
-
 // As described in the errata document. 
 // Some addresses have no description to what they are. 
 #define DCFG_CCSR_PORSR1   0x01EE0000
 #define DCFG_WRITE_BACK    0x20140000
-#define RCW_SRC_MASK       0x1FF      /* bits 0–8 */
 #define SOME_ADDR          (0x01570000 + 0x1A8)
 
 void workaround_a008127(void)
@@ -104,15 +102,15 @@ int misc_init_r(void)
 	
 	printf("\n=== On-board devices self test ===\n\n");
 
-	test_failed |= test_voltage_sensors();
 	test_failed |= test_stusb4500_nvm();
+	test_failed |= test_voltage_sensors();
+	test_failed |= test_tmp431_temperatures();
 	test_failed |= test_hd3ss3220();
 	test_failed |= test_pcf2131_rtc();
 	test_failed |= test_eeprom();
 	test_failed |= test_ds100df410_retimer();
 	test_failed |= test_6v49205b_clkgen();
 	test_failed |= test_emc2302_fan();
-	test_failed |= test_tmp431_temperatures();
 	
 	// LED test runs last and turns red in case any of the tests fail
 	test_lp5810a_led(test_failed);

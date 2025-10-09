@@ -1,7 +1,7 @@
 /*
  * U-Boot command to program EEPROM with board information
- * Usage: program_eeprom <model> <serial> <mac_start> <mac_end>
- * Example: program_eeprom "Gateway Development Kit" "A2.B002" 02:4D:4F:4E:4F:01 02:4D:4F:4E:4F:05
+ * Usage: program_eeprom <model> <serial> <mac_base>
+ * Example: program_eeprom "Gateway Development Kit" "A2.B002" 02:4D:4F:4E:4F:01
  */
 
 #include <common.h>
@@ -257,20 +257,20 @@ static int do_program_eeprom(struct cmd_tbl *cmdtp, int flag, int argc, char *co
 {
 	struct udevice *eeprom_dev;
 	uint8_t data_buffer[256];
-	uint8_t mac_start[6], mac_current[6], mac_end[6];
+	uint8_t mac_base[6], mac_current[6];
 	uint16_t crc;
 	int ret, i;
 	
-	if (argc != 5) {
-		printf("Usage: program_eeprom <model> <serial> <mac_start> <mac_end>\n");
-		printf("Example: program_eeprom \"Gateway Development Kit\" \"A2.B002\" 02:4D:4F:4E:4F:01 02:4D:4F:4E:4F:05\n");
+	if (argc != 4) {
+		printf("Usage: program_eeprom <model> <serial> <mac_base>\n");
+		printf("Example: program_eeprom \"Gateway Development Kit\" \"A2.B002\" 02:4D:4F:4E:4F:01\n");
+		printf("Note: MAC addresses will be automatically generated from mac_base to mac_base+4\n");
 		return CMD_RET_USAGE;
 	}
 	
 	const char *model = argv[1];
 	const char *serial = argv[2];
-	const char *mac_start_str = argv[3];
-	const char *mac_end_str = argv[4];
+	const char *mac_base_str = argv[3];
 	
 	/* First, check if EEPROM is already programmed */
 	printf("Checking if EEPROM is already programmed...\n");
@@ -293,31 +293,25 @@ static int do_program_eeprom(struct cmd_tbl *cmdtp, int flag, int argc, char *co
 		return CMD_RET_FAILURE;
 	}
 	
-	/* Parse MAC addresses */
-	if (parse_mac(mac_start_str, mac_start) < 0) {
-		printf("Error: Invalid MAC start address format\n");
+	/* Parse base MAC address */
+	if (parse_mac(mac_base_str, mac_base) < 0) {
+		printf("Error: Invalid MAC address format\n");
 		return CMD_RET_FAILURE;
 	}
 	
-	if (parse_mac(mac_end_str, mac_end) < 0) {
-		printf("Error: Invalid MAC end address format\n");
-		return CMD_RET_FAILURE;
-	}
-	
-	/* Verify we have exactly 5 MAC addresses in range */
-	memcpy(mac_current, mac_start, 6);
+	/* Calculate the last MAC address for display */
+	memcpy(mac_current, mac_base, 6);
 	for (i = 0; i < MAC_COUNT - 1; i++) {
 		increment_mac(mac_current);
-	}
-	if (memcmp(mac_current, mac_end, 6) != 0) {
-		printf("Error: MAC address range must contain exactly %d addresses\n", MAC_COUNT);
-		return CMD_RET_FAILURE;
 	}
 	
 	printf("Programming EEPROM with:\n");
 	printf("  Model:  %s\n", model);
 	printf("  Serial: %s\n", serial);
-	printf("  MAC:    %s to %s\n", mac_start_str, mac_end_str);
+	printf("  MAC:    %s to %02X:%02X:%02X:%02X:%02X:%02X (5 addresses)\n",
+	       mac_base_str,
+	       mac_current[0], mac_current[1], mac_current[2],
+	       mac_current[3], mac_current[4], mac_current[5]);
 	
 	/* Unlock EEPROM */
 	unlock_eeprom();
@@ -359,9 +353,9 @@ static int do_program_eeprom(struct cmd_tbl *cmdtp, int flag, int argc, char *co
 	ret = write_string(eeprom_dev, OFFSET_SERIAL, serial, SERIAL_SIZE);
 	if (ret) goto write_error;
 	
-	/* Write MAC addresses */
+	/* Write MAC addresses - start with base and increment for each */
 	printf("Writing MAC addresses...\n");
-	memcpy(mac_current, mac_start, 6);
+	memcpy(mac_current, mac_base, 6);
 	
 	ret = dm_i2c_write(eeprom_dev, OFFSET_MAC0, mac_current, 6);
 	if (ret) goto write_error;
@@ -446,13 +440,14 @@ write_error:
 }
 
 U_BOOT_CMD(
-	program_eeprom, 5, 0, do_program_eeprom,
+	program_eeprom, 4, 0, do_program_eeprom,
 	"Program EEPROM with board information",
-	"<model> <serial> <mac_start> <mac_end>\n"
-	"    model     - Board model name (max 31 chars)\n"
-	"    serial    - Board serial number (max 63 chars)\n"
-	"    mac_start - First MAC address (format: XX:XX:XX:XX:XX:XX)\n"
-	"    mac_end   - Last MAC address (must be start + 4)\n"
+	"<model> <serial> <mac_base>\n"
+	"    model    - Board model name (max 31 chars)\n"
+	"    serial   - Board serial number (max 63 chars)\n"
+	"    mac_base - Base MAC address (format: XX:XX:XX:XX:XX:XX)\n"
+	"               The next 4 addresses will be automatically calculated\n"
 	"Example:\n"
-	"    program_eeprom \"Gateway Development Kit\" \"A2.B002\" 02:4D:4F:4E:4F:01 02:4D:4F:4E:4F:05"
+	"    program_eeprom \"Gateway Development Kit\" \"A2.B002\" 02:4D:4F:4E:4F:01\n"
+	"    This will program MAC addresses 02:4D:4F:4E:4F:01 through 02:4D:4F:4E:4F:05"
 );
