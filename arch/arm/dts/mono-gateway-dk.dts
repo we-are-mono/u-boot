@@ -79,7 +79,6 @@
         reg = <0x50>;
         pagesize = <32>;              /* 32-byte page writes */
         size = <4096>;                /* 4KB (32Kbit) total size */
-        u-boot,dm-pre-reloc;
     };
 };
 
