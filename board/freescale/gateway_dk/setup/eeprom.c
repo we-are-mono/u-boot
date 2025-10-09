@@ -1,5 +1,6 @@
 /*
  * U-Boot command to program EEPROM with board information
+ * EEPROM: AT24CS32 (32Kbit / 4KB, 32-byte pages)
  * Usage: program_eeprom <model> <serial> <mac_base>
  * Example: program_eeprom "Gateway Development Kit" "A2.B002" 02:4D:4F:4E:4F:01
  */
@@ -7,6 +8,7 @@
 #include <common.h>
 #include <dm.h>
 #include <i2c.h>
+#include <i2c_eeprom.h>
 #include <command.h>
 #include <exports.h>
 #include <asm/io.h>
@@ -130,48 +132,19 @@ static void lock_eeprom(void)
 	out_be32((void *)(GPIO3_BASE + GPIO3_GPDAT), gpio_dat);
 }
 
-/* Write string to EEPROM at offset, padded with zeros, respecting page boundaries */
-static int write_string(struct udevice *dev, uint16_t offset, const char *str, size_t max_len)
+/* Get EEPROM device */
+static int get_eeprom_device(struct udevice **devp)
 {
-	uint8_t buffer[max_len];
-	size_t len = strlen(str);
 	int ret;
-	size_t remaining, chunk_size;
-	uint16_t current_offset;
-	uint8_t *current_ptr;
 	
-	if (len >= max_len)
-		len = max_len - 1;
+	/* Try to get by device tree name first */
+	ret = uclass_get_device_by_name(UCLASS_I2C_EEPROM, "eeprom@50", devp);
+	if (ret == 0)
+		return 0;
 	
-	memset(buffer, 0, max_len);
-	memcpy(buffer, str, len);
-	
-	/* Write in chunks, respecting 32-byte page boundaries */
-	/* Pages are at addresses where bits A11-A5 are the same */
-	current_offset = offset;
-	current_ptr = buffer;
-	remaining = max_len;
-	
-	while (remaining > 0) {
-		/* Calculate bytes remaining in current page */
-		uint16_t page_offset = current_offset & 0x1F;  // Bits A4-A0
-		chunk_size = 32 - page_offset;  // Bytes left in this page
-		
-		if (chunk_size > remaining)
-			chunk_size = remaining;
-		
-		ret = dm_i2c_write(dev, current_offset, current_ptr, chunk_size);
-		if (ret)
-			return ret;
-		
-		udelay(10000);  // Wait for write cycle to complete
-		
-		current_offset += chunk_size;
-		current_ptr += chunk_size;
-		remaining -= chunk_size;
-	}
-	
-	return 0;
+	/* Fallback: get by bus and address */
+	ret = i2c_get_chip_for_busnum(I2C_BUS, EEPROM_ADDR, 2, devp);
+	return ret;
 }
 
 /* Test if EEPROM is programmed by checking magic number and load to environment */
@@ -187,15 +160,15 @@ int test_eeprom(void)
 	const char *mac_env_names[] = {"ethaddr", "eth1addr", "eth2addr", "eth3addr", "eth4addr"};
 	uint16_t mac_offsets[] = {OFFSET_MAC0, OFFSET_MAC1, OFFSET_MAC2, OFFSET_MAC3, OFFSET_MAC4};
 	
-	/* Get EEPROM device with 2-byte address offset */
-	ret = i2c_get_chip_for_busnum(I2C_BUS, EEPROM_ADDR, 2, &eeprom_dev);
+	/* Get EEPROM device */
+	ret = get_eeprom_device(&eeprom_dev);
 	if (ret) {
 		printf("%-20s: FAIL (Device not found at 0x%02x)\n", "EEPROM", EEPROM_ADDR);
 		return ret;
 	}
 	
 	/* Read magic number */
-	ret = dm_i2c_read(eeprom_dev, OFFSET_MAGIC, magic_read, 4);
+	ret = i2c_eeprom_read(eeprom_dev, OFFSET_MAGIC, magic_read, 4);
 	if (ret) {
 		printf("%-20s: FAIL (Failed to read)\n", "EEPROM");
 		return ret;
@@ -211,7 +184,7 @@ int test_eeprom(void)
 	}
 	
 	/* Read model */
-	ret = dm_i2c_read(eeprom_dev, OFFSET_MODEL, model_read, MODEL_SIZE);
+	ret = i2c_eeprom_read(eeprom_dev, OFFSET_MODEL, model_read, MODEL_SIZE);
 	if (ret) {
 		printf("%-20s: FAIL (Failed to read model)\n", "EEPROM");
 		return ret;
@@ -219,7 +192,7 @@ int test_eeprom(void)
 	model_read[MODEL_SIZE - 1] = '\0';
 	
 	/* Read serial number */
-	ret = dm_i2c_read(eeprom_dev, OFFSET_SERIAL, serial_read, SERIAL_SIZE);
+	ret = i2c_eeprom_read(eeprom_dev, OFFSET_SERIAL, serial_read, SERIAL_SIZE);
 	if (ret) {
 		printf("%-20s: FAIL (Failed to read serial)\n", "EEPROM");
 		return ret;
@@ -235,7 +208,7 @@ int test_eeprom(void)
 	
 	/* Read and set MAC addresses */
 	for (i = 0; i < MAC_COUNT; i++) {
-		ret = dm_i2c_read(eeprom_dev, mac_offsets[i], mac_read, 6);
+		ret = i2c_eeprom_read(eeprom_dev, mac_offsets[i], mac_read, 6);
 		if (ret) {
 			printf("Warning: Failed to read MAC address %d\n", i);
 			continue;
@@ -258,6 +231,7 @@ static int do_program_eeprom(struct cmd_tbl *cmdtp, int flag, int argc, char *co
 	struct udevice *eeprom_dev;
 	uint8_t data_buffer[256];
 	uint8_t mac_base[6], mac_current[6];
+	uint8_t write_buffer[SERIAL_SIZE];
 	uint16_t crc;
 	int ret, i;
 	
@@ -317,7 +291,7 @@ static int do_program_eeprom(struct cmd_tbl *cmdtp, int flag, int argc, char *co
 	unlock_eeprom();
 	
 	/* Get EEPROM device */
-	ret = i2c_get_chip_for_busnum(I2C_BUS, EEPROM_ADDR, 2, &eeprom_dev);
+	ret = get_eeprom_device(&eeprom_dev);
 	if (ret) {
 		printf("Error: Failed to get EEPROM device at bus %d, address 0x%02x\n", 
 		       I2C_BUS, EEPROM_ADDR);
@@ -325,66 +299,63 @@ static int do_program_eeprom(struct cmd_tbl *cmdtp, int flag, int argc, char *co
 		return CMD_RET_FAILURE;
 	}
 	
-	/* Write Magic Number - all 4 bytes at once */
+	/* Write Magic Number */
 	printf("Writing magic number...\n");
-	data_buffer[0] = 0x4D;  // 'M'
-	data_buffer[1] = 0x41;  // 'A'
-	data_buffer[2] = 0x47;  // 'G'
-	data_buffer[3] = 0x43;  // 'C'
-	ret = dm_i2c_write(eeprom_dev, OFFSET_MAGIC, data_buffer, 4);
+	data_buffer[0] = MAGIC_BYTE0;
+	data_buffer[1] = MAGIC_BYTE1;
+	data_buffer[2] = MAGIC_BYTE2;
+	data_buffer[3] = MAGIC_BYTE3;
+	ret = i2c_eeprom_write(eeprom_dev, OFFSET_MAGIC, data_buffer, 4);
 	if (ret) goto write_error;
-	udelay(10000);  // 10ms wait for write cycle
 	
-	/* Write Format Version - both bytes at once */
+	/* Write Format Version */
 	printf("Writing format version...\n");
 	data_buffer[0] = 0x00;
 	data_buffer[1] = 0x01;
-	ret = dm_i2c_write(eeprom_dev, OFFSET_VERSION, data_buffer, 2);
+	ret = i2c_eeprom_write(eeprom_dev, OFFSET_VERSION, data_buffer, 2);
 	if (ret) goto write_error;
-	udelay(10000);  // 10ms wait for write cycle
 	
-	/* Write Model */
+	/* Write Model - prepare zero-padded buffer */
 	printf("Writing model name...\n");
-	ret = write_string(eeprom_dev, OFFSET_MODEL, model, MODEL_SIZE);
+	memset(write_buffer, 0, MODEL_SIZE);
+	memcpy(write_buffer, model, strlen(model));
+	ret = i2c_eeprom_write(eeprom_dev, OFFSET_MODEL, write_buffer, MODEL_SIZE);
 	if (ret) goto write_error;
 	
-	/* Write Serial */
+	/* Write Serial - prepare zero-padded buffer */
 	printf("Writing serial number...\n");
-	ret = write_string(eeprom_dev, OFFSET_SERIAL, serial, SERIAL_SIZE);
+	memset(write_buffer, 0, SERIAL_SIZE);
+	memcpy(write_buffer, serial, strlen(serial));
+	ret = i2c_eeprom_write(eeprom_dev, OFFSET_SERIAL, write_buffer, SERIAL_SIZE);
 	if (ret) goto write_error;
 	
-	/* Write MAC addresses - start with base and increment for each */
+	/* Write MAC addresses */
 	printf("Writing MAC addresses...\n");
 	memcpy(mac_current, mac_base, 6);
 	
-	ret = dm_i2c_write(eeprom_dev, OFFSET_MAC0, mac_current, 6);
+	ret = i2c_eeprom_write(eeprom_dev, OFFSET_MAC0, mac_current, 6);
 	if (ret) goto write_error;
-	udelay(5000);
 	
 	increment_mac(mac_current);
-	ret = dm_i2c_write(eeprom_dev, OFFSET_MAC1, mac_current, 6);
+	ret = i2c_eeprom_write(eeprom_dev, OFFSET_MAC1, mac_current, 6);
 	if (ret) goto write_error;
-	udelay(5000);
 	
 	increment_mac(mac_current);
-	ret = dm_i2c_write(eeprom_dev, OFFSET_MAC2, mac_current, 6);
+	ret = i2c_eeprom_write(eeprom_dev, OFFSET_MAC2, mac_current, 6);
 	if (ret) goto write_error;
-	udelay(5000);
 	
 	increment_mac(mac_current);
-	ret = dm_i2c_write(eeprom_dev, OFFSET_MAC3, mac_current, 6);
+	ret = i2c_eeprom_write(eeprom_dev, OFFSET_MAC3, mac_current, 6);
 	if (ret) goto write_error;
-	udelay(5000);
 	
 	increment_mac(mac_current);
-	ret = dm_i2c_write(eeprom_dev, OFFSET_MAC4, mac_current, 6);
+	ret = i2c_eeprom_write(eeprom_dev, OFFSET_MAC4, mac_current, 6);
 	if (ret) goto write_error;
-	udelay(5000);
 	
 	/* Read back data section for CRC calculation */
 	printf("Calculating CRC...\n");
-	ret = dm_i2c_read(eeprom_dev, OFFSET_MODEL, data_buffer, 
-	                  OFFSET_MAC4 + 6 - OFFSET_MODEL);
+	ret = i2c_eeprom_read(eeprom_dev, OFFSET_MODEL, data_buffer, 
+	                      OFFSET_MAC4 + 6 - OFFSET_MODEL);
 	if (ret) {
 		printf("Error: Failed to read back data for CRC\n");
 		lock_eeprom();
@@ -395,19 +366,18 @@ static int do_program_eeprom(struct cmd_tbl *cmdtp, int flag, int argc, char *co
 	crc = crc16_ccitt(data_buffer, OFFSET_MAC4 + 6 - OFFSET_MODEL);
 	data_buffer[0] = (crc >> 8) & 0xFF;
 	data_buffer[1] = crc & 0xFF;
-	ret = dm_i2c_write(eeprom_dev, OFFSET_CRC, data_buffer, 2);
+	ret = i2c_eeprom_write(eeprom_dev, OFFSET_CRC, data_buffer, 2);
 	if (ret) goto write_error;
-	udelay(10000);
 	
 	printf("CRC16: 0x%04X\n", crc);
 	
-	/* Wait for all writes to complete BEFORE locking */
+	/* Wait for EEPROM writes to complete */
 	printf("Waiting for EEPROM write cycles to complete...\n");
-	udelay(50000);  // 50ms delay to ensure all writes have settled
+	udelay(50000);  // 50ms delay
 	
-	/* Verify by reading back BEFORE we lock */
+	/* Verify by reading back */
 	printf("\nVerifying EEPROM contents:\n");
-	ret = dm_i2c_read(eeprom_dev, 0, data_buffer, 160);
+	ret = i2c_eeprom_read(eeprom_dev, 0, data_buffer, 160);
 	if (ret) {
 		printf("Error: Failed to read back for verification\n");
 		lock_eeprom();
@@ -422,12 +392,12 @@ static int do_program_eeprom(struct cmd_tbl *cmdtp, int flag, int argc, char *co
 	printf("Serial:  %s\n", (char *)&data_buffer[OFFSET_SERIAL]);
 	
 	for (i = 0; i < MAC_COUNT; i++) {
-		uint8_t *mac = &data_buffer[OFFSET_MAC0 - OFFSET_MAGIC + i * 6];
+		uint8_t *mac = &data_buffer[OFFSET_MAC0 + i * 6];
 		printf("MAC%d:    %02X:%02X:%02X:%02X:%02X:%02X\n", i,
 		       mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 	}
 	
-	/* NOW lock EEPROM after verification is complete */
+	/* Lock EEPROM */
 	lock_eeprom();
 	
 	printf("\nEEPROM programming successful!\n");
