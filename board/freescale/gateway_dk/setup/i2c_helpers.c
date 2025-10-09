@@ -1,6 +1,7 @@
 #include <common.h>
 #include <dm.h>
 #include <i2c.h>
+#include "i2c_helpers.h"
 
 int setup_i2c_muxed_device(int bus, uint8_t mux_addr, uint8_t channel, 
                            uint8_t dev_addr, struct udevice **dev)
