@@ -72,7 +72,15 @@
 };
 
 &i2c3 {
-	status = "okay";
+    status = "okay";
+    
+    eeprom@50 {
+        compatible = "atmel,24c32";   /* AT24CS32 - 32Kbit (4KB) */
+        reg = <0x50>;
+        pagesize = <32>;              /* 32-byte page writes */
+        size = <4096>;                /* 4KB (32Kbit) total size */
+        u-boot,dm-pre-reloc;
+    };
 };
 
 &usb1 {
