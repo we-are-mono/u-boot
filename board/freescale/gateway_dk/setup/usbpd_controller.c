@@ -4,13 +4,7 @@
 #include <command.h>
 #include <exports.h>
 #include "i2c_helpers.h"
-
-// Expected NVM values (from STSW configuration for 3A)
-static const uint8_t expected_sector0[8] = {0x00,0x00,0xB0,0xAB,0x00,0x45,0x00,0x00};
-static const uint8_t expected_sector1[8] = {0x10,0x40,0x9C,0x1C,0xFF,0x03,0x3C,0xDF};
-static const uint8_t expected_sector2[8] = {0x02,0x40,0x0F,0x00,0x32,0x00,0xFC,0xF1};
-static const uint8_t expected_sector3[8] = {0x00,0x19,0x56,0xAF,0xFB,0xB5,0x5F,0x00};
-static const uint8_t expected_sector4[8] = {0x00,0x4B,0x90,0x21,0x43,0x00,0x40,0xFB};
+#include "NVM_config_STUSB45.h"
 
 #define STUSB4500_ADDR 0x28
 #define I2C_BUS 2
@@ -127,11 +121,11 @@ static int program_nvm(struct udevice *dev)
 	
 	for (int sector = 0; sector < 5; sector++) {
 		switch(sector) {
-			case 0: sector_data = expected_sector0; break;
-			case 1: sector_data = expected_sector1; break;
-			case 2: sector_data = expected_sector2; break;
-			case 3: sector_data = expected_sector3; break;
-			case 4: sector_data = expected_sector4; break;
+			case 0: sector_data = Sector0; break;
+			case 1: sector_data = Sector1; break;
+			case 2: sector_data = Sector2; break;
+			case 3: sector_data = Sector3; break;
+			case 4: sector_data = Sector4; break;
 			default: return -1;
 		}
 		
@@ -199,11 +193,11 @@ int test_stusb4500_nvm(void)
 	
 	for (sector = 0; sector < 5; sector++) {
 		switch(sector) {
-			case 0: expected_data = expected_sector0; break;
-			case 1: expected_data = expected_sector1; break;
-			case 2: expected_data = expected_sector2; break;
-			case 3: expected_data = expected_sector3; break;
-			case 4: expected_data = expected_sector4; break;
+			case 0: expected_data = Sector0; break;
+			case 1: expected_data = Sector1; break;
+			case 2: expected_data = Sector2; break;
+			case 3: expected_data = Sector3; break;
+			case 4: expected_data = Sector4; break;
 			default: expected_data = NULL;
 		}
 		
