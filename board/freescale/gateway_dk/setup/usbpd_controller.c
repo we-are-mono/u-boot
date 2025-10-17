@@ -1,4 +1,6 @@
-#include <common.h>
+#include <linux/types.h>
+#include <linux/delay.h>
+#include <stdio.h>
 #include <dm.h>
 #include <i2c.h>
 #include <command.h>

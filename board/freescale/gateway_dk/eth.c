@@ -2,7 +2,8 @@
 /*
  * Copyright 2025 Mono Technologies Inc.
  */
-#include <common.h>
+#include <linux/types.h>
+#include <linux/delay.h>
 #include <command.h>
 #include <netdev.h>
 #include <malloc.h>

@@ -5,7 +5,12 @@
  * Example: program_eeprom "Gateway Development Kit" "A2.B002" 02:4D:4F:4E:4F:01
  */
 
-#include <common.h>
+#include <linux/types.h>
+#include <linux/delay.h>
+#include <stdio.h>
+#include <string.h>
+#include <vsprintf.h>
+#include <env.h>
 #include <dm.h>
 #include <i2c.h>
 #include <i2c_eeprom.h>

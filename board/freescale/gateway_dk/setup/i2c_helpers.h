@@ -1,7 +1,7 @@
 #ifndef I2C_HELPERS_H
 #define I2C_HELPERS_H
 
-#include <common.h>
+#include <linux/types.h>
 
 struct udevice;
 
