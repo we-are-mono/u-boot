@@ -1,4 +1,5 @@
-#include <common.h>
+#include <linux/types.h>
+#include <stdio.h>
 #include <dm.h>
 #include <i2c.h>
 #include <asm/io.h>

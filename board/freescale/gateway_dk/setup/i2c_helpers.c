@@ -1,4 +1,4 @@
-#include <common.h>
+#include <linux/types.h>
 #include <dm.h>
 #include <i2c.h>
 #include "i2c_helpers.h"

@@ -3,7 +3,6 @@
  * Copyright 2025 Mono Technologies Inc.
  */
 
-#include <common.h>
 #include <fsl_ddr_sdram.h>
 #include <asm/global_data.h>
 
