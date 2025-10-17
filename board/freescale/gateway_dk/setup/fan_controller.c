@@ -1,6 +1,5 @@
-// board/freescale/gateway_dk/setup/fan_controller_test.c
-
-#include <common.h>
+#include <linux/types.h>
+#include <stdio.h>
 #include <dm.h>
 #include <i2c.h>
 #include "i2c_helpers.h"

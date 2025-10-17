@@ -3,7 +3,8 @@
  * Copyright 2025 Mono Technologies Inc.
  */
 
-#include <common.h>
+#include <linux/types.h>
+#include <stdio.h>
 #include <i2c.h>
 #include <fdt_support.h>
 #include <env.h>
