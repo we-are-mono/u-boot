@@ -43,21 +43,6 @@ int test_emc2302_fan(void);
 int test_tmp431_temperatures(void);
 int test_lp5810a_led(int any_test_failed);
 
-/* 
- * USB ports have this weird reset thing going on
- * so the port doesn't come out of reset with the
- * rest of the CPU, so we have to do it manually
-*/
-static inline void usb_reset(void)
-{
-#ifdef CONFIG_HAS_FSL_XHCI_USB
-	uint reset_val = 0x9e000000;
-	struct ccsr_scfg *scfg = (struct ccsr_scfg *)CFG_SYS_FSL_SCFG_ADDR;
-	
-	out_le32(&scfg->usb_refclk_selcr1, reset_val);
-#endif
-}
-
 // As described in the errata document. 
 // Some addresses have no description to what they are. 
 #define DCFG_CCSR_PORSR1   0x01EE0000
@@ -124,8 +109,6 @@ int misc_init_r(void)
 
 int fsl_board_late_init(void)
 {
-	usb_reset();
-
 	return 0;
 }
 
