@@ -1,5 +1,6 @@
 #include <linux/types.h>
 #include <stdio.h>
+#include <env.h>
 #include <dm.h>
 #include <i2c.h>
 #include <asm/io.h>
@@ -53,7 +54,7 @@ int test_lp5810a_led(int any_test_failed)
 	dm_i2c_write(led_dev, 0x20, &reg, 1);
 	
 	// Set peak current for all LEDs (0x30-0x33)
-	reg = 0x0F;
+	reg = 0xFF;
 	for (int led = 0x30; led <= 0x33; led++) {
 		dm_i2c_write(led_dev, led, &reg, 1);
 	}
@@ -65,10 +66,11 @@ int test_lp5810a_led(int any_test_failed)
 	dm_i2c_write(led_dev, LED_GREEN_REG, &reg, 1);
 	dm_i2c_write(led_dev, LED_RED_REG, &reg, 1);
 	
-	// Turn on appropriate LED
+	// Turn on appropriate LED and set kernel parameter
 	reg = LED_FULL;
 	if (any_test_failed) {
 		dm_i2c_write(led_dev, LED_RED_REG, &reg, 1);
+		env_set("bootargs_hwtest", "hwtest_status=fail");
 	} else {
 		dm_i2c_write(led_dev, LED_GREEN_REG, &reg, 1);
 	}
