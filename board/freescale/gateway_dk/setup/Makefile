@@ -3,6 +3,7 @@
 # Copyright 2025 Mono Technologies Inc.
 
 obj-y += i2c_helpers.o
+obj-y += ddr_sanity.o
 obj-y += voltage_sensors.o
 obj-y += usbpd_controller.o
 obj-y += typec_controller.o

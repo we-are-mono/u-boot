@@ -32,6 +32,7 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+int test_ddr_sanity(void);
 int test_voltage_sensors(void);
 int test_stusb4500_nvm(void);
 int test_hd3ss3220(void);
@@ -86,8 +87,9 @@ int misc_init_r(void)
 {
 	int test_failed = 0;
 	
-	printf("\n=== On-board devices self test ===\n\n");
+	printf("\n");
 
+	test_failed |= test_ddr_sanity();
 	test_failed |= test_stusb4500_nvm();
 	test_failed |= test_voltage_sensors();
 	test_failed |= test_tmp431_temperatures();
@@ -100,8 +102,12 @@ int misc_init_r(void)
 	
 	// LED test runs last and turns red in case any of the tests fail
 	test_lp5810a_led(test_failed);
-	
-	printf("\n\n");
+
+	if (test_failed) {
+		printf("\nOn-board devices self test: FAIL\n\n");
+	} else {
+		printf("\nOn-board devices self test: PASS\n\n");
+	}
 
 	return 0;
 }
