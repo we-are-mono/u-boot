@@ -7,48 +7,50 @@
 #define I2C_BUS 2
 #define I2C_MUX_ADDR 0x70
 #define INA234_BUS_VOLTAGE_REG 0x02
-#define VOLTAGE_TOLERANCE_PERCENT 3
 #define NUM_SENSORS (sizeof(sensors) / sizeof(sensors[0]))
 
-static int check_voltage_tolerance(uint32_t measured_mv, uint32_t expected_mv, const char *rail_name);
+static int check_voltage_limits(uint32_t measured_mv, uint32_t min_mv, uint32_t max_mv, const char *rail_name);
 
-/* Expected voltages for each sensor (in mV, integer) */
+/* Voltage limits for each sensor (in mV, integer) */
 typedef struct {
 	uint8_t channel;        /* Mux channel (0 or 1) */
 	uint8_t address;        /* I2C address */
 	uint16_t shunt_mohm;    /* Shunt resistor value in mOhm */
-	uint32_t expected_mv;   /* Expected voltage in mV */
+	uint32_t min_mv;        /* Minimum voltage in mV */
+	uint32_t max_mv;        /* Maximum voltage in mV */
 	const char *rail_name;  /* Descriptive name */
 } sensor_config_t;
 
 static const sensor_config_t sensors[] = {
 	/* Channel 0 */
-	{0, 0x40, 1, 20000, "20V Power Rail"},
-	{0, 0x41, 1,  5000, "5V Power Rail"},
-	{0, 0x42, 1,  1000, "1V CPU PSU"},
-	{0, 0x43, 5,  1200, "1.2V DDR PSU"},
+	{0, 0x40, 1, 13365, 22220, "20V Power Rail"},
+	{0, 0x41, 1,  4851,  5151, "5V Power Rail"},
+	{0, 0x42, 1,   970,  1030, "1V CPU PSU"},  
+	{0, 0x43, 5,  1158,  1242, "1.2V DDR PSU"},
 	
-	/* Channel 1 */
-	{1, 0x40, 5,  1350, "1.35V SerDes PSU"},
-	{1, 0x41, 5,  1800, "1.8V Power Rail"},
-	{1, 0x42, 5,  2500, "2.5V Power Rail"},
-	{1, 0x43, 1,  3300, "3.3V Power Rail"},
+	/* Channel 0 */
+	{1, 0x40, 5,  1307,  1394, "1.35V SerDes PSU"},
+	{1, 0x41, 5,  1732,  1869, "1.8V Power Rail"},
+	{1, 0x42, 5,  2396,  2606, "2.5V Power Rail"},
+	{1, 0x43, 1,  3188,  3414, "3.3V Power Rail"},
 };
 
-static int check_voltage_tolerance(uint32_t measured_mv, uint32_t expected_mv, const char *rail_name)
+static int check_voltage_limits(uint32_t measured_mv, uint32_t min_mv, uint32_t max_mv, const char *rail_name)
 {
-	uint32_t tolerance_mv = (expected_mv * VOLTAGE_TOLERANCE_PERCENT) / 100;
-	uint32_t min_mv = expected_mv - tolerance_mv;
-	uint32_t max_mv = expected_mv + tolerance_mv;
-	
 	if (measured_mv < min_mv || measured_mv > max_mv) {
-		printf("%-20s: FAIL (%d.%03dV, ±%d%%)\n",
-			   rail_name, measured_mv / 1000, measured_mv % 1000, VOLTAGE_TOLERANCE_PERCENT);
+		printf("%-20s: FAIL (%d.%03dV, limits: %d.%03dV - %d.%03dV)\n",
+			   rail_name, 
+			   measured_mv / 1000, measured_mv % 1000,
+			   min_mv / 1000, min_mv % 1000,
+			   max_mv / 1000, max_mv % 1000);
 		return -1;
 	}
 	
-	printf("%-20s: PASS (%d.%03dV, ±%d%%)\n",
-		   rail_name, measured_mv / 1000, measured_mv % 1000, VOLTAGE_TOLERANCE_PERCENT);
+	printf("%-20s: PASS (%d.%03dV, limits: %d.%03dV - %d.%03dV)\n",
+		   rail_name, 
+		   measured_mv / 1000, measured_mv % 1000,
+		   min_mv / 1000, min_mv % 1000,
+		   max_mv / 1000, max_mv % 1000);
 	return 0;
 }
 
@@ -93,8 +95,8 @@ int test_voltage_sensors(void)
 		voltage_bits = raw_voltage >> 4;
 		voltage_mv = (voltage_bits * 256) / 10;  /* 25.6mV per bit */
 		
-		/* Check tolerance */
-		ret = check_voltage_tolerance(voltage_mv, sensor->expected_mv, sensor->rail_name);
+		/* Check limits */
+		ret = check_voltage_limits(voltage_mv, sensor->min_mv, sensor->max_mv, sensor->rail_name);
 		if (ret == 0) {
 			pass_count++;
 		} else {

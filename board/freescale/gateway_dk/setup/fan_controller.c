@@ -17,7 +17,7 @@
 /* EMC2305_TACH_CNT_MULTIPLIER = 2 */
 #define EMC230X_RPM_FACTOR  3932160U
 #define TACH_MULTIPLIER     2U
-#define MIN_RPM             2000
+#define MIN_RPM             4000
 
 static int fan_controller_init(struct udevice *fan_dev)
 {
@@ -68,7 +68,7 @@ int test_emc2302_fan(void)
 	}
 
 	/* Wait for the fan to spin up */
-	mdelay(200);
+	mdelay(500);
 
 	/* Read tachometer high byte */
 	ret = dm_i2c_reg_read(fan_dev, TACH_HIGH_REG);
@@ -100,7 +100,7 @@ int test_emc2302_fan(void)
 	rpm = base * TACH_MULTIPLIER;
 
 	/* Check if fan is spinning fast enough (minimum 2000 RPM at 50% speed) */
-	if (rpm < 2000) {
+	if (rpm < MIN_RPM) {
 		printf("%-20s: FAIL (Fan too slow: %u RPM)\n", "Fan controller", rpm);
 		return -1;
 	}
