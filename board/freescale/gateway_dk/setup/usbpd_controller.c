@@ -142,17 +142,6 @@ static int program_nvm(struct udevice *dev)
 	return 0;
 }
 
-static void stusb4500_reset(struct udevice *dev)
-{
-	int ret;
-	
-	ret = dm_i2c_reg_write(dev, RESET_CTRL_REG, 0x01);
-	if (ret) {
-		printf("WARNING: I2C reset failed, attempting board reset\n");
-		do_reset(NULL, 0, 0, NULL);
-	}
-}
-
 int test_stusb4500_nvm(void)
 {
 	struct udevice *stusb_dev;
@@ -220,7 +209,7 @@ int test_stusb4500_nvm(void)
 	}
 	
 	if (mismatch_found) {
-		printf("\n*** USB PD CONFIGURATION MISMATCH DETECTED - REPROGRAMMING NVM ***\n\n");
+		printf("\nUSB PD configuration mismatch detected - reprogramming NVM...\n\n");
 		
 		ret = program_nvm(stusb_dev);
 		if (ret) {
@@ -234,12 +223,8 @@ int test_stusb4500_nvm(void)
 		dm_i2c_write(stusb_dev, FTP_CTRL_0_REG, exit_data, 2);
 		dm_i2c_reg_write(stusb_dev, FTP_KEY_REG, 0x00);
 		
-		printf("\n*** NVM REPROGRAMMED - RESETTING STUSB4500 ***\n");
-		
-		// Reset STUSB4500 via I2C (this will reset the board)
-		stusb4500_reset(stusb_dev);
-		
-		// Should not reach this
+		printf("\n*** NVM reprogrammed - reset the device for the updated settings to take effect! ***\n");
+
 		return 0;
 	}
 	
