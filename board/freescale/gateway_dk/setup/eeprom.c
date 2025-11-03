@@ -32,9 +32,9 @@
 #define OFFSET_CRC          0x0006
 #define OFFSET_MODEL        0x0008
 #define OFFSET_SERIAL       0x0028
-#define OFFSET_MAC0         0x0068
-#define OFFSET_MAC1         0x006E
-#define OFFSET_MAC2         0x0074
+#define OFFSET_MAC0         0x0074
+#define OFFSET_MAC1         0x0068
+#define OFFSET_MAC2         0x006E
 #define OFFSET_MAC3         0x007A
 #define OFFSET_MAC4         0x0080
 
