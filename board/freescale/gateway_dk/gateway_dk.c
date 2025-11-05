@@ -65,6 +65,7 @@ static inline void usb_reset(void)
 
 void workaround_a008127(void)
 {
+	printf("\n== Applying ERRATA 008127 ==\n\n");
     u32 dat;
 
     dat = in_le32((void *)DCFG_CCSR_PORSR1);
