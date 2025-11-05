@@ -61,11 +61,11 @@ static inline void usb_reset(void)
 // Some addresses have no description to what they are. 
 #define DCFG_CCSR_PORSR1   0x01EE0000
 #define DCFG_WRITE_BACK    0x20140000
+#define RCW_SRC_MASK       0x1FF      /* bits 0–8 */
 #define SOME_ADDR          (0x01570000 + 0x1A8)
 
 void workaround_a008127(void)
 {
-	printf("\n== Applying ERRATA 008127 ==\n\n");
     u32 dat;
 
     dat = in_le32((void *)DCFG_CCSR_PORSR1);
@@ -99,8 +99,6 @@ int board_setup_core_volt(u32 vdd)
 #ifdef CONFIG_MISC_INIT_R
 int misc_init_r(void)
 {
-	workaround_a008127();
-	
 	int test_failed = 0;
 	
 	printf("\n=== On-board devices self test ===\n\n");
