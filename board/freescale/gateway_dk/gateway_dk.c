@@ -99,6 +99,8 @@ int board_setup_core_volt(u32 vdd)
 #ifdef CONFIG_MISC_INIT_R
 int misc_init_r(void)
 {
+	workaround_a008127();
+	
 	int test_failed = 0;
 	
 	printf("\n=== On-board devices self test ===\n\n");
