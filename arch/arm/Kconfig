@@ -1850,6 +1850,7 @@ config TARGET_GATEWAY_DK
 	select DM_SPI_FLASH if DM_SPI
 	select GPIO_EXTRA_HEADER
 	select FSL_DDR_INTERACTIVE
+	select SUPPORT_SPL
 	help
 	  Support for Gateway Development Kit.
 	  Gateway Development Kit is a high-performance
