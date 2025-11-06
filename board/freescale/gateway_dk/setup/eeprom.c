@@ -26,17 +26,20 @@
 #define GPIO3_GPDIR 0x00
 #define GPIO3_GPDAT 0x08
 
-/* EEPROM Layout Offsets */
-#define OFFSET_MAGIC        0x0000
-#define OFFSET_VERSION      0x0004
-#define OFFSET_CRC          0x0006
-#define OFFSET_MODEL        0x0008
-#define OFFSET_SERIAL       0x0028
-#define OFFSET_MAC0         0x0074
-#define OFFSET_MAC1         0x0068
-#define OFFSET_MAC2         0x006E
-#define OFFSET_MAC3         0x007A
-#define OFFSET_MAC4         0x0080
+/* EEPROM Layout Offsets
+ * MAC addresses are stored in physical port order (left to right on board)
+ * Named by their FMAN MAC number for clarity
+ */
+#define OFFSET_MAGIC      0x0000
+#define OFFSET_VERSION    0x0004
+#define OFFSET_CRC        0x0006
+#define OFFSET_MODEL      0x0008
+#define OFFSET_SERIAL     0x0028
+#define OFFSET_MAC5       0x0068  /* fm1-mac5  - Physical port 0 (leftmost)  -> ethaddr  */
+#define OFFSET_MAC6       0x006E  /* fm1-mac6  - Physical port 1             -> eth1addr */
+#define OFFSET_MAC2       0x0074  /* fm1-mac2  - Physical port 2 (middle)    -> eth2addr */
+#define OFFSET_MAC9       0x007A  /* fm1-mac9  - Physical port 3             -> eth3addr */
+#define OFFSET_MAC10      0x0080  /* fm1-mac10 - Physical port 4 (rightmost) -> eth4addr */
 
 #define MODEL_SIZE          32
 #define SERIAL_SIZE         64
@@ -162,8 +165,30 @@ int test_eeprom(void)
 	uint8_t mac_read[6];
 	char mac_str[18];
 	int ret, i;
-	const char *mac_env_names[] = {"ethaddr", "eth1addr", "eth2addr", "eth3addr", "eth4addr"};
-	uint16_t mac_offsets[] = {OFFSET_MAC0, OFFSET_MAC1, OFFSET_MAC2, OFFSET_MAC3, OFFSET_MAC4};
+	
+	/* Map EEPROM MAC offsets to U-Boot environment variables in physical port order
+	 * Physical layout (left to right on board):
+	 *   Port 0: fm1-mac5  -> ethaddr  (EEPROM OFFSET_MAC5)
+	 *   Port 1: fm1-mac6  -> eth1addr (EEPROM OFFSET_MAC6)
+	 *   Port 2: fm1-mac2  -> eth2addr (EEPROM OFFSET_MAC2)
+	 *   Port 3: fm1-mac9  -> eth3addr (EEPROM OFFSET_MAC9)
+	 *   Port 4: fm1-mac10 -> eth4addr (EEPROM OFFSET_MAC10)
+	 */
+	const char *mac_env_names[] = {
+		"ethaddr",   /* Physical port 0 (leftmost)  - fm1-mac5  */
+		"eth1addr",  /* Physical port 1             - fm1-mac6  */
+		"eth2addr",  /* Physical port 2 (middle)    - fm1-mac2  */
+		"eth3addr",  /* Physical port 3             - fm1-mac9  */
+		"eth4addr"   /* Physical port 4 (rightmost) - fm1-mac10 */
+	};
+	
+	uint16_t mac_offsets[] = {
+		OFFSET_MAC5,   /* For fm1-mac5  (physical port 0, leftmost)  */
+		OFFSET_MAC6,   /* For fm1-mac6  (physical port 1) */
+		OFFSET_MAC2,   /* For fm1-mac2  (physical port 2, middle) */
+		OFFSET_MAC9,   /* For fm1-mac9  (physical port 3) */
+		OFFSET_MAC10   /* For fm1-mac10 (physical port 4, rightmost) */
+	};
 	
 	/* Get EEPROM device */
 	ret = get_eeprom_device(&eeprom_dev);
@@ -211,11 +236,11 @@ int test_eeprom(void)
 	env_set("model", (char *)model_read);
 	env_set("serial_number", (char *)serial_read);
 	
-	/* Read and set MAC addresses */
+	/* Read and set MAC addresses in physical port order (left to right) */
 	for (i = 0; i < MAC_COUNT; i++) {
 		ret = i2c_eeprom_read(eeprom_dev, mac_offsets[i], mac_read, 6);
 		if (ret) {
-			printf("Warning: Failed to read MAC address %d\n", i);
+			printf("Warning: Failed to read MAC address for physical port %d\n", i);
 			continue;
 		}
 		
@@ -224,7 +249,7 @@ int test_eeprom(void)
 		        mac_read[0], mac_read[1], mac_read[2],
 		        mac_read[3], mac_read[4], mac_read[5]);
 		
-		/* Set environment variable */
+		/* Set environment variable - matches physical left-to-right order */
 		env_set(mac_env_names[i], mac_str);
 	}
 	
@@ -244,6 +269,7 @@ static int do_program_eeprom(struct cmd_tbl *cmdtp, int flag, int argc, char *co
 		printf("Usage: program_eeprom <model> <serial> <mac_base>\n");
 		printf("Example: program_eeprom \"Gateway Development Kit\" \"A2.B002\" 02:4D:4F:4E:4F:01\n");
 		printf("Note: MAC addresses will be automatically generated from mac_base to mac_base+4\n");
+		printf("      in physical port order (left to right)\n");
 		return CMD_RET_USAGE;
 	}
 	
@@ -287,7 +313,7 @@ static int do_program_eeprom(struct cmd_tbl *cmdtp, int flag, int argc, char *co
 	printf("Programming EEPROM with:\n");
 	printf("  Model:  %s\n", model);
 	printf("  Serial: %s\n", serial);
-	printf("  MAC:    %s to %02X:%02X:%02X:%02X:%02X:%02X (5 addresses)\n",
+	printf("  MAC:    %s to %02X:%02X:%02X:%02X:%02X:%02X (5 addresses, physical order)\n",
 	       mac_base_str,
 	       mac_current[0], mac_current[1], mac_current[2],
 	       mac_current[3], mac_current[4], mac_current[5]);
@@ -334,15 +360,15 @@ static int do_program_eeprom(struct cmd_tbl *cmdtp, int flag, int argc, char *co
 	ret = i2c_eeprom_write(eeprom_dev, OFFSET_SERIAL, write_buffer, SERIAL_SIZE);
 	if (ret) goto write_error;
 	
-	/* Write MAC addresses */
-	printf("Writing MAC addresses...\n");
+	/* Write MAC addresses in physical port order */
+	printf("Writing MAC addresses in physical port order...\n");
 	memcpy(mac_current, mac_base, 6);
 	
-	ret = i2c_eeprom_write(eeprom_dev, OFFSET_MAC0, mac_current, 6);
+	ret = i2c_eeprom_write(eeprom_dev, OFFSET_MAC5, mac_current, 6);
 	if (ret) goto write_error;
 	
 	increment_mac(mac_current);
-	ret = i2c_eeprom_write(eeprom_dev, OFFSET_MAC1, mac_current, 6);
+	ret = i2c_eeprom_write(eeprom_dev, OFFSET_MAC6, mac_current, 6);
 	if (ret) goto write_error;
 	
 	increment_mac(mac_current);
@@ -350,17 +376,17 @@ static int do_program_eeprom(struct cmd_tbl *cmdtp, int flag, int argc, char *co
 	if (ret) goto write_error;
 	
 	increment_mac(mac_current);
-	ret = i2c_eeprom_write(eeprom_dev, OFFSET_MAC3, mac_current, 6);
+	ret = i2c_eeprom_write(eeprom_dev, OFFSET_MAC9, mac_current, 6);
 	if (ret) goto write_error;
 	
 	increment_mac(mac_current);
-	ret = i2c_eeprom_write(eeprom_dev, OFFSET_MAC4, mac_current, 6);
+	ret = i2c_eeprom_write(eeprom_dev, OFFSET_MAC10, mac_current, 6);
 	if (ret) goto write_error;
 	
 	/* Read back data section for CRC calculation */
 	printf("Calculating CRC...\n");
 	ret = i2c_eeprom_read(eeprom_dev, OFFSET_MODEL, data_buffer, 
-	                      OFFSET_MAC4 + 6 - OFFSET_MODEL);
+	                      OFFSET_MAC10 + 6 - OFFSET_MODEL);
 	if (ret) {
 		printf("Error: Failed to read back data for CRC\n");
 		lock_eeprom();
@@ -368,7 +394,7 @@ static int do_program_eeprom(struct cmd_tbl *cmdtp, int flag, int argc, char *co
 	}
 	
 	/* Calculate and write CRC */
-	crc = crc16_ccitt(data_buffer, OFFSET_MAC4 + 6 - OFFSET_MODEL);
+	crc = crc16_ccitt(data_buffer, OFFSET_MAC10 + 6 - OFFSET_MODEL);
 	data_buffer[0] = (crc >> 8) & 0xFF;
 	data_buffer[1] = crc & 0xFF;
 	ret = i2c_eeprom_write(eeprom_dev, OFFSET_CRC, data_buffer, 2);
@@ -396,11 +422,27 @@ static int do_program_eeprom(struct cmd_tbl *cmdtp, int flag, int argc, char *co
 	printf("Model:   %s\n", (char *)&data_buffer[OFFSET_MODEL]);
 	printf("Serial:  %s\n", (char *)&data_buffer[OFFSET_SERIAL]);
 	
-	for (i = 0; i < MAC_COUNT; i++) {
-		uint8_t *mac = &data_buffer[OFFSET_MAC0 + i * 6];
-		printf("MAC%d:    %02X:%02X:%02X:%02X:%02X:%02X\n", i,
-		       mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-	}
+	/* Display MACs in physical order */
+	uint8_t *mac;
+	mac = &data_buffer[OFFSET_MAC5];
+	printf("MAC (fm1-mac5):  %02X:%02X:%02X:%02X:%02X:%02X [Physical port 0, leftmost]\n",
+	       mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+	
+	mac = &data_buffer[OFFSET_MAC6];
+	printf("MAC (fm1-mac6):  %02X:%02X:%02X:%02X:%02X:%02X [Physical port 1]\n",
+	       mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+	
+	mac = &data_buffer[OFFSET_MAC2];
+	printf("MAC (fm1-mac2):  %02X:%02X:%02X:%02X:%02X:%02X [Physical port 2, middle]\n",
+	       mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+	
+	mac = &data_buffer[OFFSET_MAC9];
+	printf("MAC (fm1-mac9):  %02X:%02X:%02X:%02X:%02X:%02X [Physical port 3]\n",
+	       mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+	
+	mac = &data_buffer[OFFSET_MAC10];
+	printf("MAC (fm1-mac10): %02X:%02X:%02X:%02X:%02X:%02X [Physical port 4, rightmost]\n",
+	       mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 	
 	/* Lock EEPROM */
 	lock_eeprom();
@@ -422,7 +464,13 @@ U_BOOT_CMD(
 	"    serial   - Board serial number (max 63 chars)\n"
 	"    mac_base - Base MAC address (format: XX:XX:XX:XX:XX:XX)\n"
 	"               The next 4 addresses will be automatically calculated\n"
+	"               and stored in physical port order (left to right)\n"
 	"Example:\n"
 	"    program_eeprom \"Gateway Development Kit\" \"A2.B002\" 02:4D:4F:4E:4F:01\n"
-	"    This will program MAC addresses 02:4D:4F:4E:4F:01 through 02:4D:4F:4E:4F:05"
+	"    Physical port layout (left to right):\n"
+	"      Port 0 (fm1-mac5):  02:4D:4F:4E:4F:01\n"
+	"      Port 1 (fm1-mac6):  02:4D:4F:4E:4F:02\n"
+	"      Port 2 (fm1-mac2):  02:4D:4F:4E:4F:03\n"
+	"      Port 3 (fm1-mac9):  02:4D:4F:4E:4F:04\n"
+	"      Port 4 (fm1-mac10): 02:4D:4F:4E:4F:05"
 );
