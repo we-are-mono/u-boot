@@ -17,7 +17,7 @@
 /* EMC2305_TACH_CNT_MULTIPLIER = 2 */
 #define EMC230X_RPM_FACTOR  3932160U
 #define TACH_MULTIPLIER     2U
-#define MIN_RPM             4000
+#define MIN_RPM             1000
 
 static int fan_controller_init(struct udevice *fan_dev)
 {
@@ -67,8 +67,8 @@ int test_emc2302_fan(void)
 		return ret;
 	}
 
-	/* Wait for the fan to spin up */
-	mdelay(500);
+	/* Give the fan ample amount of time to spin up */
+	mdelay(1000);
 
 	/* Read tachometer high byte */
 	ret = dm_i2c_reg_read(fan_dev, TACH_HIGH_REG);
