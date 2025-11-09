@@ -15,6 +15,7 @@
 #include <asm/arch/fsl_serdes.h>
 #include <asm/arch/soc.h>
 #include <asm/arch-fsl-layerscape/fsl_icid.h>
+#include <asm/arch/immap_lsch2.h>
 #include <asm/gpio.h>
 #include <hwconfig.h>
 #include <ahci.h>
@@ -44,28 +45,31 @@ int test_emc2302_fan(void);
 int test_tmp431_temperatures(void);
 int test_lp5810a_led(int any_test_failed);
 
-// As described in the errata document. 
-// Some addresses have no description to what they are. 
-#define DCFG_CCSR_PORSR1   0x01EE0000
-#define DCFG_WRITE_BACK    0x20140000
-#define SOME_ADDR          (0x01570000 + 0x1A8)
+/*
+ * Workaround for Erratum A-008127
+ * Non-availability of I2C2 interface pins when RCW/PBI source is SDHC
+ *
+ * Description:
+ * When booting from SDHC/eMMC, the I2C2 pins are unavailable due to pin
+ * muxing conflicts with the SD/eMMC interface. This workaround clears the
+ * RCW_SRC field after boot to restore I2C2 functionality.
+ */
 
-void workaround_a008127(void)
+#define DCFG_PORSR1_OFFSET              0x000
+#define ERRATA_A008127_TRIGGER_OFFSET   0x1A8
+
+static void erratum_a008127(void)
 {
-    u32 dat;
-
-    dat = in_le32((void *)DCFG_CCSR_PORSR1);
-    dat &= ~RCW_SRC_MASK;             /* Clear RCW_SRC bits */
-    out_le32((void *)DCFG_WRITE_BACK, dat);
-
-    out_le32((void *)SOME_ADDR, 0xFFFFFFFF);
+    u32 porsr1_val;
+    porsr1_val = in_be32((void *)(CFG_SYS_FSL_GUTS_ADDR + DCFG_PORSR1_OFFSET));
+    porsr1_val &= ~RCW_SRC_MASK;
+    out_be32((void *)CFG_SYS_DCSR_DCFG_ADDR, porsr1_val);
+    out_be32((void *)(CFG_SYS_FSL_SCFG_ADDR + ERRATA_A008127_TRIGGER_OFFSET), 0xFFFFFFFF);
 }
 
 int board_early_init_f(void)
 {
-	// Errata fix 008127
-	// Needed for SFP functionality when booting from EMMC.
-	workaround_a008127();
+	erratum_a008127();
 
 	fsl_lsch2_early_init_f();
 
