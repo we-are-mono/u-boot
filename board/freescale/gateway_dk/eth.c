@@ -2,19 +2,18 @@
 /*
  * Copyright 2025 Mono Technologies Inc.
  */
-#include <linux/types.h>
-#include <linux/delay.h>
-#include <command.h>
+#include <common.h>
+#include <net.h>
+#include <asm/io.h>
 #include <netdev.h>
-#include <malloc.h>
+#include <fm_eth.h>
+#include <fsl_dtsec.h>
 #include <fsl_mdio.h>
+#include <malloc.h>
 #include <miiphy.h>
 #include <phy.h>
-#include <fm_eth.h>
-#include <asm/io.h>
-#include <exports.h>
 #include <asm/arch/fsl_serdes.h>
-#include <fsl-mc/fsl_mc.h>
+#include <linux/delay.h>
 
 /*
  * Because there are no official u-boot drivers for the GPY115
