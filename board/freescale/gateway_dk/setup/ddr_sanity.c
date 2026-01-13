@@ -2,7 +2,7 @@
  * Quick verification of DDR banks
  */
 
-#include <linux/types.h>
+#include <config.h>
 #include <asm/global_data.h>
 
 DECLARE_GLOBAL_DATA_PTR;

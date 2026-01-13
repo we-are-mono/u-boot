@@ -1,4 +1,4 @@
-#include <linux/types.h>
+#include <config.h>
 #include <stdio.h>
 #include <env.h>
 #include <dm.h>

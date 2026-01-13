@@ -14,3 +14,4 @@ obj-y += retimer.o
 obj-y += clock_gen.o
 obj-y += fan_controller.o
 obj-y += temp_sensors.o
+obj-y += sfp_i2c_mux.o

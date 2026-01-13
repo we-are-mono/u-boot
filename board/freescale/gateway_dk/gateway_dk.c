@@ -3,7 +3,7 @@
  * Copyright 2025 Mono Technologies Inc.
  */
 
-#include <linux/types.h>
+#include <config.h>
 #include <stdio.h>
 #include <i2c.h>
 #include <fdt_support.h>
@@ -33,6 +33,7 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+int test_sfp_i2c_mux(void);
 int test_ddr_sanity(void);
 int test_voltage_sensors(void);
 int test_stusb4500_nvm(void);
@@ -93,6 +94,7 @@ int misc_init_r(void)
 	
 	printf("\n");
 
+	test_failed |= test_sfp_i2c_mux();
 	test_failed |= test_ddr_sanity();
 	test_failed |= test_stusb4500_nvm();
 	test_failed |= test_voltage_sensors();

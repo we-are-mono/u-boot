@@ -5,7 +5,7 @@
  * Example: program_eeprom "Gateway Development Kit" "A2.B002" 02:4D:4F:4E:4F:01
  */
 
-#include <linux/types.h>
+#include <config.h>
 #include <linux/delay.h>
 #include <stdio.h>
 #include <string.h>
